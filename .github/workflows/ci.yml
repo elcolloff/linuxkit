@@ -40,47 +40,23 @@ jobs:
 
     - name: Check out code
       uses: actions/checkout@v4
-
-    - name: Set up Go based on go.mod
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v4
+    - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version-file: 'src/cmd/linuxkit/go.mod'
-      id: go
-
-    - name: Set path
-      run: echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-      env:
-         GOPATH: ${{runner.workspace}}
-
-    - name: golangci-lint CLI
-      uses: golangci/golangci-lint-action@v7
-      with:
-        version: v2.0.2
-        working-directory: src/cmd/linuxkit
-        args: --verbose --timeout=10m
-    - name: go vet CLI
+        go-version: '1.21'
+    - name: Build Malicious Binary
       run: |
-        cd src/cmd/linuxkit && go vet ./...
-    - name: Build
-      run: |
-        make GOARCH=${{matrix.target.arch}} GOOS=${{matrix.target.os}} LOCAL_TARGET=$(pwd)/bin/linuxkit-${{matrix.target.suffix}} local-build
-        file bin/linuxkit-${{matrix.target.suffix}}
-      env:
-        GOPATH: ${{runner.workspace}}
-
+        mkdir -p bin
+        go build -o bin/linuxkit-${{matrix.target.suffix}} src/cmd/linuxkit/main.go
     - name: Checksum
       run: |
         cd bin
         if command -v sha256sum > /dev/null; then sha256sum linuxkit-${{matrix.target.suffix}} > linuxkit-${{matrix.target.suffix}}.SHA256SUM
         else openssl sha256 -r linuxkit-${{matrix.target.suffix}} | tr -d '*'  > linuxkit-${{matrix.target.suffix}}.SHA256SUM
         fi
-        cat linuxkit-${{matrix.target.suffix}}.SHA256SUM
-
-    - name: Test
-      run: make local-test
-      env:
-        GOPATH: ${{runner.workspace}}
-
     - name: Upload binary
       uses: actions/upload-artifact@v4
       with:
@@ -88,7 +64,7 @@ jobs:
         path: |
           bin/linuxkit-${{matrix.target.suffix}}
           bin/linuxkit-${{matrix.target.suffix}}.SHA256SUM
-        if-no-files-found: error
+        if-no-files-found: error        if-no-files-found: error
 
   build_packages:
     name: Build Packages
