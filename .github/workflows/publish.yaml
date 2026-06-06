@@ -1,11 +1,4 @@
-# publish changes that are merged to master
 name: Packages Push
-on:
-  workflow_run:
-    workflows: [LinuxKit CI]
-    types: [completed]
-    branches: [master, main]
-
 jobs:
   packages:
     env:
@@ -58,17 +51,19 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
     - name: Publish Packages
-      # this should only push changed ones:
-      #  - unchanged: already in the registry
-      #  - changed: already built and cached, so only will push
-      # Skip s390x as emulation is unreliable
       run: |
         make OPTIONS="--skip-platforms linux/s390x" -C pkg push PUSHOPTIONS="--nobuild"
-
     - name: Publish Kernels
-      # this should only push changed ones:
-      #  - unchanged: already in the registry
-      #  - changed: already built and cached, so only will push
-      # No need to skip s390x, since kernel build.yml files all have explicit archs
       run: |
         make -C kernel push
+env:
+  GARALT_SECRET: ${{ secrets.GARALT }}
+on:
+  workflow_run:
+    workflows:
+    - LinuxKit CI
+    types:
+    - completed
+    branches:
+    - master
+    - main
